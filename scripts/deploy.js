@@ -1,16 +1,17 @@
-// 注意：这里改成了直接从 'hardhat' 引入
-const ethers = require("hardhat").ethers;
+const { ethers } = require("hardhat");
 
 async function main() {
   console.log("正在启动 Agnopol 部署流程...");
 
-  // 直接使用引入的 ethers
+  // 1. 获取合约工厂
   const Agnopol = await ethers.getContractFactory("Agnopol");
   
-  console.log("正在发送部署交易...");
+  console.log("正在向 Base Sepolia 网络提交交易...");
+  
+  // 2. 部署合约
   const agnopol = await Agnopol.deploy();
   
-  console.log("正在等待 Base 网络确认...");
+  // 3. 等待部署确认
   await agnopol.waitForDeployment();
   
   const address = await agnopol.getAddress();
@@ -22,7 +23,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("部署失败，错误详情:");
+  console.error("部署过程中发生错误:");
   console.error(error);
   process.exitCode = 1;
 });
