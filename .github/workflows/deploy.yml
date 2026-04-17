@@ -1,0 +1,17 @@
+name: Deploy
+on: [push]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+      - name: Run Deploy
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          echo "module.exports = { solidity: '0.8.20', networks: { base_sepolia: { url: 'https://sepolia.base.org', accounts: [process.env.PRIVATE_KEY] } } };" > hardhat.config.js
+          npx hardhat run scripts/deploy.js --network base_sepolia
