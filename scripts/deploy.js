@@ -1,29 +1,24 @@
-const { ethers } = require("hardhat");
+const hre = require("hardhat");
 
 async function main() {
-  console.log("正在启动 Agnopol 部署流程...");
+  const [deployer] = await hre.ethers.getSigners();
+  console.log("部署账户:", deployer.address);
 
-  // 1. 获取合约工厂
-  const Agnopol = await ethers.getContractFactory("Agnopol");
-  
-  console.log("正在向 Base Sepolia 网络提交交易...");
-  
-  // 2. 部署合约
-  const agnopol = await Agnopol.deploy();
-  
-  // 3. 等待部署确认
+  // 1. 部署合规注册表
+  const Registry = await hre.ethers.getContractFactory("AgnopolRegistry");
+  const registry = await Registry.deploy(deployer.address);
+  await registry.waitForDeployment();
+  const registryAddress = await registry.getAddress();
+  console.log("AgnopolRegistry 部署成功:", registryAddress);
+
+  // 2. 部署主协议
+  const Agnopol = await hre.ethers.getContractFactory("Agnopol");
+  const agnopol = await Agnopol.deploy(); 
   await agnopol.waitForDeployment();
-  
-  const address = await agnopol.getAddress();
-  
-  console.log("=========================================");
-  console.log("✅ 恭喜！Agnopol MVP 部署成功！");
-  console.log("合约地址:", address);
-  console.log("=========================================");
+  console.log("Agnopol 主协议部署成功:", await agnopol.getAddress());
 }
 
 main().catch((error) => {
-  console.error("部署过程中发生错误:");
   console.error(error);
   process.exitCode = 1;
 });
