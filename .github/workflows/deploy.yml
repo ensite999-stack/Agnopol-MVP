@@ -1,18 +1,26 @@
-name: Deploy
-on: [push]
+name: Deploy Agnopol
+
+on:
+  push:
+    branches: [ main ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+
+      - name: Install Dependencies
+        # 这里增加了 @openzeppelin/contracts
+        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts
+
       - name: Run Deploy
+        run: npx hardhat run scripts/deploy.js --network base-sepolia
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-        run: |
-          # 这一行是关键：增加了 require("@nomicfoundation/hardhat-toolbox");
-          echo "require('@nomicfoundation/hardhat-toolbox'); module.exports = { solidity: '0.8.20', networks: { base_sepolia: { url: 'https://sepolia.base.org', accounts: [process.env.PRIVATE_KEY] } } };" > hardhat.config.js
-          npx hardhat run scripts/deploy.js --network base_sepolia
+          QUICKNODE_RPC_URL: ${{ secrets.QUICKNODE_RPC_URL }}
