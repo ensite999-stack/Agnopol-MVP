@@ -13,5 +13,6 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          echo "module.exports = { solidity: '0.8.20', networks: { base_sepolia: { url: 'https://sepolia.base.org', accounts: [process.env.PRIVATE_KEY] } } };" > hardhat.config.js
+          # 这一行是关键：增加了 require("@nomicfoundation/hardhat-toolbox");
+          echo "require('@nomicfoundation/hardhat-toolbox'); module.exports = { solidity: '0.8.20', networks: { base_sepolia: { url: 'https://sepolia.base.org', accounts: [process.env.PRIVATE_KEY] } } };" > hardhat.config.js
           npx hardhat run scripts/deploy.js --network base_sepolia
