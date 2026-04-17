@@ -16,8 +16,8 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        # 这里增加了 @openzeppelin/contracts
-        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts
+        # 核心修改：增加了 @openzeppelin/contracts 和 dotenv
+        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts dotenv
 
       - name: Run Deploy
         run: npx hardhat run scripts/deploy.js --network base-sepolia
