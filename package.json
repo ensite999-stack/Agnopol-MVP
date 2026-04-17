@@ -1,7 +1,6 @@
 {
   "name": "agnopol-mvp",
   "version": "1.0.0",
-  "type": "module",
   "devDependencies": {
     "hardhat": "^2.22.2",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0"
