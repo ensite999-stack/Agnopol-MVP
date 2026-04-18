@@ -16,14 +16,13 @@ jobs:
         with:
           node-version: '18.x'
 
-      - name: 安装依赖
-        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts
+      - name: 安装所有依赖
+        # 关键修改：在这里增加了 dotenv 的安装
+        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts dotenv
 
       - name: 运行部署并验证
-        # 这一步会执行你的 deploy.js，里面包含了自动验证逻辑
         run: npx hardhat run scripts/deploy.js --network base-sepolia
         env:
-          # 必须在这里明确列出所有要用的秘密变量
           QUICKNODE_RPC_URL: ${{ secrets.QUICKNODE_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           BASESCAN_API_KEY: ${{ secrets.BASESCAN_API_KEY }}
