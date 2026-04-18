@@ -15,12 +15,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'          # 使用稳定的 LTS 版本
-          cache: 'npm'                # 启用 npm 缓存加速安装
+          node-version: '20'
+          cache: 'npm'   # 即使没有 lock 文件，setup-node 会 fallback 到普通缓存
 
-      # 安装项目依赖（包括 hardhat、ethers 等）
+      # 注意：改用 npm install，即使没有 package-lock.json 也能运行
       - name: Install Project Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install ZK Tools
         run: |
@@ -33,9 +33,7 @@ jobs:
         run: |
           set -e
           cd circuits
-          # 克隆特定版本以保持稳定性
           git clone --branch v2.1.0 --depth 1 https://github.com/iden3/circomlib.git
-          # 修正引用路径（原引用已改为相对路径，确保编译通过）
           sed -i 's|include "../node_modules/circomlib/circuits/poseidon.circom";|include "circomlib/circuits/poseidon.circom";|g' Agnopol.circom
 
       - name: Compile ZK Circuit
@@ -43,9 +41,7 @@ jobs:
           set -e
           mkdir -p contracts
           cd circuits
-          # 编译电路
           circom Agnopol.circom --r1cs --wasm --sym
-          # 生成可信设置参数，使用动态随机熵值
           RANDOM_ENTROPY="${{ github.run_id }}-${{ github.run_attempt }}-$(date +%s%N)"
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
           snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="GitHubActions" -v -e="$RANDOM_ENTROPY"
@@ -55,14 +51,10 @@ jobs:
 
       - name: Deploy to Base Sepolia
         env:
-          # 🔒 私钥直接通过环境变量注入，绝不写入文件
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          # 提供 Hardhat 兼容的 RPC URL 变量
           BASE_SEPOLIA_RPC_URL: https://sepolia.base.org
         run: |
           set -e
-          # 清理并编译合约（确保 Verifier.sol 被编译）
           npx hardhat clean
           npx hardhat compile
-          # 执行部署脚本
           npx hardhat run scripts/deploy.js --network base-sepolia
