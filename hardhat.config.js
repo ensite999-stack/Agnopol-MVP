@@ -9,12 +9,9 @@ module.exports = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
-  // 核心修改：配置 BaseScan 验证
   etherscan: {
-    apiKey: {
-      // 注意：这里的名字必须和 customChains 里的 network 对应
-      "base-sepolia": process.env.BASESCAN_API_KEY 
-    },
+    // 关键点：根据 Etherscan V2 升级要求，直接在最外层设置 apiKey
+    apiKey: process.env.BASESCAN_API_KEY, 
     customChains: [
       {
         network: "base-sepolia",
