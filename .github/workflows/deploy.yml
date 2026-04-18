@@ -28,17 +28,11 @@ jobs:
       - name: Compile ZK Circuit
         run: |
           mkdir -p contracts
-          # 【核心黑科技】全盘搜索 poseidon.circom 所在的文件夹
-          LIB_PATH=$(find $(pwd)/node_modules -name "poseidon.circom" | xargs dirname | head -n 1)
-          # 回退两级到 circomlib 的根目录，确保 include 路径正确
-          PARENT_LIB=$(dirname $LIB_PATH)
-          GRANDPARENT_LIB=$(dirname $PARENT_LIB)
-          
           cd circuits
-          # 同时尝试多个可能的库路径映射
-          circom Agnopol.circom --r1cs --wasm --sym -l $GRANDPARENT_LIB -l ../node_modules
+          # 直接指向 node_modules，circom 会自动递归查找匹配的 include 路径
+          circom Agnopol.circom --r1cs --wasm --sym -l ../node_modules
           
-          # ZK 密钥生成流程
+          # ZK 密钥生成流程（简化版）
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
           snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v -e="Agnopol Privacy"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
