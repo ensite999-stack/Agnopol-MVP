@@ -44,8 +44,10 @@ jobs:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           RPC_URL: "https://sepolia.base.org"
         run: |
-          # 核心修复：确保所有 hardhat 插件都安装好
+          # 强制安装所有 Hardhat 核心依赖和 OpenZeppelin 合约库
           npm install
-          npm install dotenv @nomicfoundation/hardhat-toolbox
-          # 运行部署
+          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
+          
+          # 清除缓存并重新编译部署
+          npx hardhat clean
           npx hardhat run scripts/deploy.js --network base-sepolia
