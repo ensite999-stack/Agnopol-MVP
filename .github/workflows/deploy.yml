@@ -42,12 +42,14 @@ jobs:
       - name: Deploy to Base Sepolia
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          # 即使 .env 没加载，这些 export 也会在 Shell 层面生效
+          BASE_SEPOLIA_URL: "https://sepolia.base.org"
+          RPC_URL: "https://sepolia.base.org"
         run: |
           # 1. 在最新引擎环境下安装 Hardhat 核心依赖
           npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
           
-          # 2. 彻底解决 HH117：在 shell 中强制锁定 RPC URL
-          # 同时支持 Base 官方节点的不同变量名习惯
+          # 2. 强制导出变量
           export BASE_SEPOLIA_URL="https://sepolia.base.org"
           export RPC_URL="https://sepolia.base.org"
           
