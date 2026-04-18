@@ -42,12 +42,15 @@ jobs:
       - name: Deploy to Base Sepolia
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          RPC_URL: "https://sepolia.base.org"
         run: |
-          # 强制安装所有 Hardhat 核心依赖和 OpenZeppelin 合约库
+          # 1. 强制安装所有必要依赖
           npm install
           npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
           
-          # 清除缓存并重新编译部署
+          # 2. 【核心修复】强制注入 RPC 地址到环境变量，消除 HH117 错误
+          export BASE_SEPOLIA_URL="https://sepolia.base.org"
+          export RPC_URL="https://sepolia.base.org"
+          
+          # 3. 清理并部署
           npx hardhat clean
           npx hardhat run scripts/deploy.js --network base-sepolia
