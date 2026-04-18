@@ -16,34 +16,33 @@ jobs:
         with:
           node-version: '18'
 
-      # 1. 安装 ZK 编译器
       - name: Install ZK Tools
         run: |
           npm install -g snarkjs
           sudo wget -qO /usr/local/bin/circom https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
           sudo chmod +x /usr/local/bin/circom
 
-      # 2. 关键：先安装依赖，解决 Poseidon 哈希库找不到的问题
       - name: Install Dependencies
         run: npm install
 
-      # 3. 编译 ZK 电路（增加 -l 参数指明库路径）
+      # 关键改动：使用多种路径尝试，确保能找到 poseidon.circom
       - name: Compile ZK Circuit
         run: |
           mkdir -p contracts
-          cd circuits
-          circom Agnopol.circom --r1cs --wasm --sym -l ../node_modules
+          # 找到 circomlib 的实际物理路径并存为变量
+          CIRCOMLIB_PATH=$(pwd)/node_modules
           
-          # 生成临时开发用的 Power of Tau 仪式
+          cd circuits
+          # 使用 -l 指向 node_modules 所在的绝对路径
+          circom Agnopol.circom --r1cs --wasm --sym -l $CIRCOMLIB_PATH
+          
+          # ZK 密钥生成流程（保持不变）
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
           snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v -e="Agnopol Privacy"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
           snarkjs groth16 setup Agnopol.r1cs pot12_final.ptau Agnopol_0000.zkey
-          
-          # 核心产物：导出为 Solidity 验证合约
           snarkjs zkey export solidityverifier Agnopol_0000.zkey ../contracts/Verifier.sol
 
-      # 4. 部署到 Base Sepolia
       - name: Deploy to Base Sepolia
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
