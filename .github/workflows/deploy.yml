@@ -25,18 +25,20 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      # 关键改动：使用多种路径尝试，确保能找到 poseidon.circom
       - name: Compile ZK Circuit
         run: |
           mkdir -p contracts
-          # 找到 circomlib 的实际物理路径并存为变量
-          CIRCOMLIB_PATH=$(pwd)/node_modules
+          # 【核心黑科技】全盘搜索 poseidon.circom 所在的文件夹
+          LIB_PATH=$(find $(pwd)/node_modules -name "poseidon.circom" | xargs dirname | head -n 1)
+          # 回退两级到 circomlib 的根目录，确保 include 路径正确
+          PARENT_LIB=$(dirname $LIB_PATH)
+          GRANDPARENT_LIB=$(dirname $PARENT_LIB)
           
           cd circuits
-          # 使用 -l 指向 node_modules 所在的绝对路径
-          circom Agnopol.circom --r1cs --wasm --sym -l $CIRCOMLIB_PATH
+          # 同时尝试多个可能的库路径映射
+          circom Agnopol.circom --r1cs --wasm --sym -l $GRANDPARENT_LIB -l ../node_modules
           
-          # ZK 密钥生成流程（保持不变）
+          # ZK 密钥生成流程
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
           snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v -e="Agnopol Privacy"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
