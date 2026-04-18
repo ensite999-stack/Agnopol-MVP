@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 # 升级到 v4 适配新版环境
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4 # 升级到 v4
+        uses: actions/setup-node@v4
         with:
-          node-version: '22' # 采用最新的 LTS 引擎
+          node-version: '24' # 采用目前最顶尖的 Node.js 24 引擎
 
       - name: Install ZK Tools
         run: |
@@ -26,7 +26,6 @@ jobs:
         run: |
           cd circuits
           git clone https://github.com/iden3/circomlib.git
-          # 自动修正电路中的库引用路径
           sed -i 's|include "../node_modules/circomlib/circuits/poseidon.circom";|include "circomlib/circuits/poseidon.circom";|g' Agnopol.circom
 
       - name: Compile ZK Circuit
@@ -38,20 +37,20 @@ jobs:
           snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First" -v -e="Agnopol"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
           snarkjs groth16 setup Agnopol.r1cs pot12_final.ptau Agnopol_0000.zkey
-          # 导出关键的验证合约
           snarkjs zkey export solidityverifier Agnopol_0000.zkey ../contracts/Verifier.sol
 
       - name: Deploy to Base Sepolia
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          # 强制安装最新适配的 Hardhat 套件
+          # 1. 在最新引擎环境下安装 Hardhat 核心依赖
           npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
           
-          # 解决 HH117 报错：强制注入 RPC 环境变量
+          # 2. 彻底解决 HH117：在 shell 中强制锁定 RPC URL
+          # 同时支持 Base 官方节点的不同变量名习惯
           export BASE_SEPOLIA_URL="https://sepolia.base.org"
           export RPC_URL="https://sepolia.base.org"
           
-          # 彻底清理并执行链上部署
+          # 3. 执行最终部署
           npx hardhat clean
           npx hardhat run scripts/deploy.js --network base-sepolia
