@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # 升级到 v4 消除警告
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4 # 升级到 v4 消除警告
         with:
-          node-version: '24' # 采用目前最顶尖的 Node.js 24 引擎
+          node-version: '24' # 满足你对最前沿 Node.js 24 的追求
 
       - name: Install ZK Tools
         run: |
@@ -26,33 +26,35 @@ jobs:
         run: |
           cd circuits
           git clone https://github.com/iden3/circomlib.git
+          # 修正电路包含路径
           sed -i 's|include "../node_modules/circomlib/circuits/poseidon.circom";|include "circomlib/circuits/poseidon.circom";|g' Agnopol.circom
 
       - name: Compile ZK Circuit
         run: |
           mkdir -p contracts
           cd circuits
+          # 编译电路
           circom Agnopol.circom --r1cs --wasm --sym
+          # 生成 ZK 密钥
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
           snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First" -v -e="Agnopol"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
           snarkjs groth16 setup Agnopol.r1cs pot12_final.ptau Agnopol_0000.zkey
+          # 导出验证合约
           snarkjs zkey export solidityverifier Agnopol_0000.zkey ../contracts/Verifier.sol
 
       - name: Deploy to Base Sepolia
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          # 即使 .env 没加载，这些 export 也会在 Shell 层面生效
-          BASE_SEPOLIA_URL: "https://sepolia.base.org"
-          RPC_URL: "https://sepolia.base.org"
         run: |
-          # 1. 在最新引擎环境下安装 Hardhat 核心依赖
+          # 1. 安装项目所有依赖
           npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
           
-          # 2. 强制导出变量
-          export BASE_SEPOLIA_URL="https://sepolia.base.org"
-          export RPC_URL="https://sepolia.base.org"
+          # 2. 【核心必杀技】现场生成 .env 文件，彻底消灭 HH117
+          echo "BASE_SEPOLIA_URL=https://sepolia.base.org" > .env
+          echo "RPC_URL=https://sepolia.base.org" >> .env
+          echo "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
           
-          # 3. 执行最终部署
+          # 3. 运行部署，让 Hardhat 自动读取刚才生成的 .env
           npx hardhat clean
           npx hardhat run scripts/deploy.js --network base-sepolia
