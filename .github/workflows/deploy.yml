@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # 提前适配 Node 24 环境
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-deploy:
@@ -19,35 +19,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # 移除 cache: 'npm'，因为仓库当前没有锁文件
 
-      # 如果仓库没有 package.json，自动生成一个基础配置
       - name: Bootstrap Node Project
         run: |
           if [ ! -f "package.json" ]; then
-            echo "未找到 package.json，正在自动生成..."
+            echo "Generating package.json..."
             cat > package.json << 'EOF'
-      {
-        "name": "agnopol-mvp",
-        "version": "1.0.0",
-        "description": "",
-        "main": "index.js",
-        "scripts": {
-          "test": "echo \"Error: no test specified\" && exit 1"
-        },
-        "keywords": [],
-        "author": "",
-        "license": "ISC",
-        "devDependencies": {
-          "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-          "dotenv": "^16.4.5",
-          "hardhat": "^2.22.19"
-        },
-        "dependencies": {
-          "@openzeppelin/contracts": "^5.2.0"
-        }
-      }
-      EOF
+          {
+            "name": "agnopol-mvp",
+            "version": "1.0.0",
+            "description": "",
+            "main": "index.js",
+            "scripts": {
+              "test": "echo \"Error: no test specified\" && exit 1"
+            },
+            "keywords": [],
+            "author": "",
+            "license": "ISC",
+            "devDependencies": {
+              "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+              "dotenv": "^16.4.5",
+              "hardhat": "^2.22.19"
+            },
+            "dependencies": {
+              "@openzeppelin/contracts": "^5.2.0"
+            }
+          }
+          EOF
           fi
 
       - name: Install Project Dependencies
