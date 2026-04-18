@@ -1,4 +1,4 @@
-name: Deploy Agnopol
+name: 部署 Agnopol
 
 on:
   push:
@@ -8,19 +8,22 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 安装 Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18.x'
 
-      - name: Install Dependencies
-        # 核心修改：增加了 @openzeppelin/contracts 和 dotenv
-        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts dotenv
+      - name: 安装依赖
+        run: npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox @openzeppelin/contracts
 
-      - name: Run Deploy
+      - name: 运行部署并验证
+        # 这一步会执行你的 deploy.js，里面包含了自动验证逻辑
         run: npx hardhat run scripts/deploy.js --network base-sepolia
         env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          # 必须在这里明确列出所有要用的秘密变量
           QUICKNODE_RPC_URL: ${{ secrets.QUICKNODE_RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          BASESCAN_API_KEY: ${{ secrets.BASESCAN_API_KEY }}
