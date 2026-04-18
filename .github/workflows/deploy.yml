@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 # 升级到 v4 适配新环境
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4 # 升级到 v4
+        uses: actions/setup-node@v4
         with:
-          node-version: '24' # 强制指定最新的 Node.js 24 引擎
+          node-version: '24' # 满足 Node 24 需求，消除弃用警告
 
       - name: Install ZK Tools
         run: |
@@ -26,7 +26,6 @@ jobs:
         run: |
           cd circuits
           git clone https://github.com/iden3/circomlib.git
-          # 修正电路引用的相对路径
           sed -i 's|include "../node_modules/circomlib/circuits/poseidon.circom";|include "circomlib/circuits/poseidon.circom";|g' Agnopol.circom
 
       - name: Compile ZK Circuit
@@ -44,15 +43,19 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          # 1. 在 Node 24 下重新对齐所有依赖
+          # 1. 安装核心依赖
           npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
           
-          # 2. 【核心修复】解决 HH117 报错：动态生成 .env 文件
-          # 这一步确保 Hardhat 内部的 process.env 不会再抓到空字符串
+          # 2. 【核弹级修复】一次性注入所有可能的变量名，彻底消灭 HH117
+          # 不管你的 hardhat.config.js 里写的是哪个，总有一个能对上
           echo "BASE_SEPOLIA_URL=https://sepolia.base.org" > .env
           echo "RPC_URL=https://sepolia.base.org" >> .env
+          echo "SEPOLIA_URL=https://sepolia.base.org" >> .env
           echo "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
           
-          # 3. 彻底清理缓存并执行部署
+          # 3. 运行部署，同时在 Shell 层面再次强制导出，双重保险
+          export RPC_URL="https://sepolia.base.org"
+          export BASE_SEPOLIA_URL="https://sepolia.base.org"
+          
           npx hardhat clean
           npx hardhat run scripts/deploy.js --network base-sepolia
