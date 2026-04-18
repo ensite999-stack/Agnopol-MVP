@@ -7,6 +7,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -14,48 +15,54 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24' # 满足 Node 24 需求，消除弃用警告
+          node-version: '20'          # 使用稳定的 LTS 版本
+          cache: 'npm'                # 启用 npm 缓存加速安装
+
+      # 安装项目依赖（包括 hardhat、ethers 等）
+      - name: Install Project Dependencies
+        run: npm ci
 
       - name: Install ZK Tools
         run: |
+          set -e
           npm install -g snarkjs
           sudo wget -qO /usr/local/bin/circom https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
           sudo chmod +x /usr/local/bin/circom
 
       - name: Prepare ZK Libs
         run: |
+          set -e
           cd circuits
-          git clone https://github.com/iden3/circomlib.git
+          # 克隆特定版本以保持稳定性
+          git clone --branch v2.1.0 --depth 1 https://github.com/iden3/circomlib.git
+          # 修正引用路径（原引用已改为相对路径，确保编译通过）
           sed -i 's|include "../node_modules/circomlib/circuits/poseidon.circom";|include "circomlib/circuits/poseidon.circom";|g' Agnopol.circom
 
       - name: Compile ZK Circuit
         run: |
+          set -e
           mkdir -p contracts
           cd circuits
+          # 编译电路
           circom Agnopol.circom --r1cs --wasm --sym
+          # 生成可信设置参数，使用动态随机熵值
+          RANDOM_ENTROPY="${{ github.run_id }}-${{ github.run_attempt }}-$(date +%s%N)"
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-          snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First" -v -e="Agnopol"
+          snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="GitHubActions" -v -e="$RANDOM_ENTROPY"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
           snarkjs groth16 setup Agnopol.r1cs pot12_final.ptau Agnopol_0000.zkey
           snarkjs zkey export solidityverifier Agnopol_0000.zkey ../contracts/Verifier.sol
 
       - name: Deploy to Base Sepolia
         env:
+          # 🔒 私钥直接通过环境变量注入，绝不写入文件
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          # 提供 Hardhat 兼容的 RPC URL 变量
+          BASE_SEPOLIA_RPC_URL: https://sepolia.base.org
         run: |
-          # 1. 安装核心依赖
-          npm install --save-dev @nomicfoundation/hardhat-toolbox dotenv @openzeppelin/contracts
-          
-          # 2. 【核弹级修复】一次性注入所有可能的变量名，彻底消灭 HH117
-          # 不管你的 hardhat.config.js 里写的是哪个，总有一个能对上
-          echo "BASE_SEPOLIA_URL=https://sepolia.base.org" > .env
-          echo "RPC_URL=https://sepolia.base.org" >> .env
-          echo "SEPOLIA_URL=https://sepolia.base.org" >> .env
-          echo "PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
-          
-          # 3. 运行部署，同时在 Shell 层面再次强制导出，双重保险
-          export RPC_URL="https://sepolia.base.org"
-          export BASE_SEPOLIA_URL="https://sepolia.base.org"
-          
+          set -e
+          # 清理并编译合约（确保 Verifier.sol 被编译）
           npx hardhat clean
+          npx hardhat compile
+          # 执行部署脚本
           npx hardhat run scripts/deploy.js --network base-sepolia
