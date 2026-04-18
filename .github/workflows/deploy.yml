@@ -23,27 +23,25 @@ jobs:
       - name: Bootstrap Node Project
         run: |
           if [ ! -f "package.json" ]; then
-            echo "Generating package.json..."
-            echo '{' > package.json
-            echo '  "name": "agnopol-mvp",' >> package.json
-            echo '  "version": "1.0.0",' >> package.json
-            echo '  "description": "",' >> package.json
-            echo '  "main": "index.js",' >> package.json
-            echo '  "scripts": {' >> package.json
-            echo '    "test": "echo \"Error: no test specified\" && exit 1"' >> package.json
-            echo '  },' >> package.json
-            echo '  "keywords": [],' >> package.json
-            echo '  "author": "",' >> package.json
-            echo '  "license": "ISC",' >> package.json
-            echo '  "devDependencies": {' >> package.json
-            echo '    "@nomicfoundation/hardhat-toolbox": "^5.0.0",' >> package.json
-            echo '    "dotenv": "^16.4.5",' >> package.json
-            echo '    "hardhat": "^2.22.19"' >> package.json
-            echo '  },' >> package.json
-            echo '  "dependencies": {' >> package.json
-            echo '    "@openzeppelin/contracts": "^5.2.0"' >> package.json
-            echo '  }' >> package.json
-            echo '}' >> package.json
+            echo "Generating package.json via Node.js..."
+            node -e "const pkg={
+              name: 'agnopol-mvp',
+              version: '1.0.0',
+              description: '',
+              main: 'index.js',
+              scripts: { test: 'echo \"Error: no test specified\" && exit 1' },
+              keywords: [],
+              author: '',
+              license: 'ISC',
+              devDependencies: {
+                '@nomicfoundation/hardhat-toolbox': '^5.0.0',
+                'dotenv': '^16.4.5',
+                'hardhat': '^2.22.19'
+              },
+              dependencies: {
+                '@openzeppelin/contracts': '^5.2.0'
+              }
+            }; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
           fi
 
       - name: Install Project Dependencies
