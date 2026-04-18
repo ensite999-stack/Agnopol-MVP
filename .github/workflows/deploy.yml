@@ -22,23 +22,19 @@ jobs:
           sudo wget -qO /usr/local/bin/circom https://github.com/iden3/circom/releases/latest/download/circom-linux-amd64
           sudo chmod +x /usr/local/bin/circom
 
-      # 关键改动：直接在 circuits 目录里克隆 circomlib，彻底消灭路径报错
       - name: Prepare ZK Libs
         run: |
           cd circuits
           git clone https://github.com/iden3/circomlib.git
-          # 修改 circom 文件里的路径，使其指向本地刚刚下载的库
           sed -i 's|include "../node_modules/circomlib/circuits/poseidon.circom";|include "circomlib/circuits/poseidon.circom";|g' Agnopol.circom
 
       - name: Compile ZK Circuit
         run: |
           mkdir -p contracts
           cd circuits
-          # 现在 include 路径就在本地，绝对不会找不到
           circom Agnopol.circom --r1cs --wasm --sym
-          
           snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-          snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v -e="Agnopol Privacy"
+          snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First" -v -e="Agnopol"
           snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
           snarkjs groth16 setup Agnopol.r1cs pot12_final.ptau Agnopol_0000.zkey
           snarkjs zkey export solidityverifier Agnopol_0000.zkey ../contracts/Verifier.sol
@@ -48,5 +44,8 @@ jobs:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           RPC_URL: "https://sepolia.base.org"
         run: |
+          # 核心修复：确保所有 hardhat 插件都安装好
           npm install
+          npm install dotenv @nomicfoundation/hardhat-toolbox
+          # 运行部署
           npx hardhat run scripts/deploy.js --network base-sepolia
